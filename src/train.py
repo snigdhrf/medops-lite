@@ -13,22 +13,19 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from .data import PreparedDataset, ensure_directory, load_dataset
+from .data import load_dataset
 from .evaluate import evaluate
 from .model import PneumoniaCNN
 
 
-def seed_everything(seed: int) -> None:
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-
-
 def train(args: argparse.Namespace) -> dict[str, object]:
-    seed_everything(args.seed)
-    output = ensure_directory(args.output)
-    train_data = PreparedDataset(load_dataset("train", args.data_dir))
-    val_data = PreparedDataset(load_dataset("val", args.data_dir))
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    output = Path(args.output)
+    output.mkdir(parents=True, exist_ok=True)
+    train_data = load_dataset("train", args.data_dir)
+    val_data = load_dataset("val", args.data_dir)
     train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True)
     val_loader = DataLoader(val_data, batch_size=args.batch_size)
 
@@ -54,7 +51,7 @@ def train(args: argparse.Namespace) -> dict[str, object]:
     if best_state is not None:
         model.load_state_dict(best_state)
 
-    test_data = PreparedDataset(load_dataset("test", args.data_dir))
+    test_data = load_dataset("test", args.data_dir)
     metrics = evaluate(model, DataLoader(test_data, batch_size=args.batch_size))
     checkpoint = output / "model.pt"
     torch.save(model.state_dict(), checkpoint)
@@ -70,19 +67,16 @@ def train(args: argparse.Namespace) -> dict[str, object]:
     }
     (output / "metrics.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 
-    try:
-        import mlflow
+    import mlflow
 
-        mlflow.set_tracking_uri(args.mlflow_uri)
-        with mlflow.start_run():
-            mlflow.log_params({key: metadata[key] for key in ("seed", "epochs", "batch_size", "learning_rate", "class_weights")})
-            mlflow.log_metrics({key: value for key, value in metrics.items() if isinstance(value, float)})
-            if best_val_metrics:
-                mlflow.log_metrics({f"val_{key}": value for key, value in best_val_metrics.items() if isinstance(value, float)})
-            mlflow.log_artifact(str(checkpoint))
-            mlflow.log_artifact(str(output / "metrics.json"))
-    except ImportError:
-        pass
+    mlflow.set_tracking_uri(args.mlflow_uri)
+    with mlflow.start_run():
+        mlflow.log_params({key: metadata[key] for key in ("seed", "epochs", "batch_size", "learning_rate", "class_weights")})
+        mlflow.log_metrics({key: value for key, value in metrics.items() if isinstance(value, float)})
+        if best_val_metrics:
+            mlflow.log_metrics({f"val_{key}": value for key, value in best_val_metrics.items() if isinstance(value, float)})
+        mlflow.log_artifact(str(checkpoint))
+        mlflow.log_artifact(str(output / "metrics.json"))
     return metadata
 
 
