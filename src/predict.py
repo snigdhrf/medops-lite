@@ -59,15 +59,6 @@ class Handler(BaseHTTPRequestHandler):
         except (KeyError, ValueError, OSError) as error:
             self.send_error(400, str(error))
 
-    def log_message(self, format: str, *args: object) -> None:
-        print(format % args)
-
-
-def serve(model_path: str, port: int = 8080) -> None:
-    Handler.model = load_model(model_path)
-    HTTPServer(("0.0.0.0", port), Handler).serve_forever()
-
-
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("image", nargs="?")
@@ -76,7 +67,8 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8080)
     args = parser.parse_args()
     if args.serve:
-        serve(args.model, args.port)
+        Handler.model = load_model(args.model)
+        HTTPServer(("0.0.0.0", args.port), Handler).serve_forever()
     elif args.image:
         print(json.dumps(predict_bytes(load_model(args.model), open(args.image, "rb").read())))
     else:

@@ -3,25 +3,23 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import torch
+from medmnist import PneumoniaMNIST
 from PIL import Image
 
 
 IMAGE_SIZE = 28
 
 
-def load_dataset(split: str, root: str = "data", download: bool = True) -> Any:
+def load_dataset(split: str, root: str = "data") -> PneumoniaMNIST:
     """Load PneumoniaMNIST through the official MedMNIST dataset wrapper."""
-    from medmnist import PneumoniaMNIST
-
     Path(root).mkdir(parents=True, exist_ok=True)
     return PneumoniaMNIST(
         split=split,
         root=root,
-        download=download,
+        download=True,
         transform=image_to_tensor,
         target_transform=_label_to_tensor,
     )

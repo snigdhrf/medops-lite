@@ -18,14 +18,10 @@ from .evaluate import evaluate
 from .model import PneumoniaCNN
 
 
-def seed_everything(seed: int) -> None:
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-
-
 def train(args: argparse.Namespace) -> dict[str, object]:
-    seed_everything(args.seed)
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
     output = Path(args.output)
     output.mkdir(parents=True, exist_ok=True)
     train_data = load_dataset("train", args.data_dir)
