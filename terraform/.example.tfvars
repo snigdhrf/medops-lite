@@ -1,3 +1,3 @@
-# Replace both placeholders with digests produced by the release workflow.
-image_digest       = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-model_artifact_key = "models/0000000000000000000000000000000000000000000000000000000000000000/model.tar.gz"
+# Leave both empty for storage-only mode. Set both to deploy an endpoint.
+image_digest       = ""
+model_artifact_key = ""
