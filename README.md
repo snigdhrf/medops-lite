@@ -75,8 +75,10 @@ Deployments pin the container by ECR digest and store each model archive under i
 
 ```bash
 terraform -chdir=terraform init
-terraform -chdir=terraform apply -var-file=release.tfvars
+terraform -chdir=terraform apply
 ```
+
+This first apply creates storage and ECR without an endpoint. After publishing the image and model, put their identifiers in `terraform/release.tfvars` using the example file as a template. Run `terraform -chdir=terraform apply -var-file=release.tfvars` to deploy the endpoint.
 
 The role lets SageMaker read the model, pull the image, and write CloudWatch logs and metrics. The bucket blocks public access and uses encryption and versioning.
 
