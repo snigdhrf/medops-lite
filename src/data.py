@@ -18,7 +18,13 @@ def load_dataset(split: str, root: str = "data", download: bool = True) -> Any:
     from medmnist import PneumoniaMNIST
 
     Path(root).mkdir(parents=True, exist_ok=True)
-    return PneumoniaMNIST(split=split, root=root, download=download)
+    return PneumoniaMNIST(
+        split=split,
+        root=root,
+        download=download,
+        transform=image_to_tensor,
+        target_transform=_label_to_tensor,
+    )
 
 
 def image_to_tensor(image: Image.Image) -> torch.Tensor:
@@ -28,18 +34,8 @@ def image_to_tensor(image: Image.Image) -> torch.Tensor:
     return (tensor - 0.5) / 0.5
 
 
-class PreparedDataset(torch.utils.data.Dataset):
-    """Adapter that makes MedMNIST samples explicit and testable."""
-
-    def __init__(self, dataset: Any) -> None:
-        self.dataset = dataset
-
-    def __len__(self) -> int:
-        return len(self.dataset)
-
-    def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:
-        image, label = self.dataset[index]
-        target = int(np.asarray(label).reshape(-1)[0])
-        if target not in (0, 1):
-            raise ValueError(f"unexpected binary label: {target}")
-        return image_to_tensor(image), torch.tensor(target, dtype=torch.long)
+def _label_to_tensor(label: object) -> torch.Tensor:
+    target = int(np.asarray(label).reshape(-1)[0])
+    if target not in (0, 1):
+        raise ValueError(f"unexpected binary label: {target}")
+    return torch.tensor(target, dtype=torch.long)
