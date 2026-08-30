@@ -6,10 +6,6 @@ This is an educational project. The dataset and baseline model are not suitable 
 
 ![Architecture](architecture.svg)
 
-## Why this resembles the role
-
-The engineering problem is the same one described in the role: move a research-style ML workflow into a repeatable system with versioned artifacts, automated checks, deployment, and monitoring. The model is deliberately basic so the infrastructure remains visible.
-
 ## Exploratory data analysis
 
 After running `make train`, open `notebooks/01_data_eda.ipynb` in VS Code and select the project `.venv` kernel. It summarizes the downloaded splits, label balance, sample images, and raw pixel distributions.
