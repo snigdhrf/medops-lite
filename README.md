@@ -63,29 +63,22 @@ docker run --rm -p 8080:8080 -v "$PWD/artifacts:/opt/ml/model" \
   medops-lite:local --serve --model /opt/ml/model/model.pt
 ```
 
-The image is also suitable as a starting point for a SageMaker custom inference container. A production image would need a fuller request contract, authentication, structured logging, and a controlled model-loading path.
+The image implements SageMaker's `/ping` and `/invocations` container contract. A production image would also need request-size limits, stricter input validation, structured logging, and a production HTTP server. SageMaker endpoint access is authenticated through AWS IAM rather than inside the container.
 
 ## AWS path
 
-The Terraform configuration defaults to storage-only mode to avoid accidentally creating a billable endpoint. The optional deployment uses SageMaker Serverless Inference because this demo expects infrequent traffic. It scales to zero when idle, avoiding the cost of a continuously running instance. The first request after an idle period may be slower because the endpoint has to start.
+Terraform creates an S3 artifact bucket, an ECR image repository, and a SageMaker execution role. It leaves the endpoint disabled until both `image_digest` and `model_artifact_key` are set.
+
+The endpoint uses SageMaker Serverless Inference because this demo expects little traffic. It scales to zero when idle, trading lower compute cost for slower cold starts. S3, ECR, and CloudWatch may still incur small charges.
+
+Deployments pin the container by ECR digest and store each model archive under its content hash. Changing either value creates a new SageMaker model and endpoint configuration before updating the stable endpoint. See [terraform/.example.tfvars](terraform/.example.tfvars) for the required inputs.
 
 ```bash
-cd terraform
-terraform init
-terraform plan
-terraform apply
-terraform output
+terraform -chdir=terraform init
+terraform -chdir=terraform apply -var-file=release.tfvars
 ```
 
-Tag the Docker image with an immutable version such as a Git SHA and push it to the ECR URL from the outputs. Package the model as `model.tar.gz` and upload it to a versioned key such as `models/<mlflow-run-id>/model.tar.gz` in the artifacts bucket. Set `image_tag` and `model_artifact_key` in a local `.tfvars` file. Terraform creates a new SageMaker model and endpoint configuration when either value changes, so the image and model can be released independently. Leave both empty to keep storage-only mode.
-
-The serverless endpoint uses 2 GB of memory and accepts up to two concurrent requests. Destroy the resources afterwards:
-
-```bash
-terraform destroy
-```
-
-The Terraform role lets SageMaker read the model from S3, pull the inference image from ECR, and write logs and metrics to CloudWatch. Terraform retains endpoint logs for 14 days and removes the log group on destroy. The artifacts bucket uses server-side S3 encryption and versioning, but deployments use the Git SHA in the object key rather than relying on S3 versions. Production would use tighter resource-level permissions, private networking, secret management, lifecycle policies, and an approved account structure.
+The role lets SageMaker read the model, pull the image, and write CloudWatch logs and metrics. The bucket blocks public access and uses encryption and versioning.
 
 ## Monitoring demo
 
