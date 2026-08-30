@@ -33,8 +33,17 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "artifacts" {
   }
 }
 
+resource "aws_s3_bucket_public_access_block" "artifacts" {
+  bucket                  = aws_s3_bucket.artifacts.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
 resource "aws_ecr_repository" "inference" {
   name                 = var.project_name
+  force_delete         = true
   image_tag_mutability = "IMMUTABLE"
   image_scanning_configuration { scan_on_push = true }
 }
