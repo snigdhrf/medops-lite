@@ -12,8 +12,6 @@ provider "aws" {
   region = var.aws_region
 }
 
-data "aws_caller_identity" "current" {}
-
 resource "aws_s3_bucket" "artifacts" {
   bucket_prefix = "${var.project_name}-"
   force_destroy = true
