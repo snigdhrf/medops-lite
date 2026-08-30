@@ -17,40 +17,14 @@ def load_dataset(split: str, root: str = "data", download: bool = True) -> Any:
     """Load PneumoniaMNIST through the official MedMNIST dataset wrapper."""
     from medmnist import PneumoniaMNIST
 
-    if split not in {"train", "val", "test"}:
-        raise ValueError("split must be train, val, or test")
     Path(root).mkdir(parents=True, exist_ok=True)
     return PneumoniaMNIST(split=split, root=root, download=download)
 
 
-def image_to_tensor(image: Any) -> torch.Tensor:
-    """Convert a grayscale image to the model's normalized CHW tensor."""
-    if isinstance(image, torch.Tensor):
-        tensor = image.detach().float()
-        if tensor.ndim == 2:
-            tensor = tensor.unsqueeze(0)
-        if tensor.ndim != 3:
-            raise ValueError("image tensor must have shape HxW or CxHxW")
-        if tensor.shape[0] != 1:
-            tensor = tensor[:1]
-        if tensor.max() > 1:
-            tensor = tensor / 255.0
-    else:
-        array = np.asarray(image)
-        if array.ndim == 3:
-            array = array[..., 0]
-        if array.ndim != 2:
-            raise ValueError("image must be a 2D grayscale image")
-        pil_image = Image.fromarray(array.astype(np.uint8)).resize(
-            (IMAGE_SIZE, IMAGE_SIZE), Image.Resampling.BILINEAR
-        )
-        tensor = torch.from_numpy(np.asarray(pil_image, dtype=np.float32) / 255.0)
-        tensor = tensor.unsqueeze(0)
-
-    if tuple(tensor.shape[-2:]) != (IMAGE_SIZE, IMAGE_SIZE):
-        tensor = torch.nn.functional.interpolate(
-            tensor.unsqueeze(0), size=(IMAGE_SIZE, IMAGE_SIZE), mode="bilinear", align_corners=False
-        ).squeeze(0)
+def image_to_tensor(image: Image.Image) -> torch.Tensor:
+    """Convert an image to the model's normalized CHW tensor."""
+    resized = image.convert("L").resize((IMAGE_SIZE, IMAGE_SIZE), Image.Resampling.BILINEAR)
+    tensor = torch.from_numpy(np.asarray(resized, dtype=np.float32) / 255.0).unsqueeze(0)
     return (tensor - 0.5) / 0.5
 
 

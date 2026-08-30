@@ -25,7 +25,7 @@ def load_model(path: str) -> PneumoniaCNN:
 
 
 def predict_bytes(model: PneumoniaCNN, image_bytes: bytes) -> dict[str, object]:
-    image = Image.open(io.BytesIO(image_bytes)).convert("L")
+    image = Image.open(io.BytesIO(image_bytes))
     with torch.no_grad():
         probabilities = torch.softmax(model(image_to_tensor(image).unsqueeze(0)), dim=1)[0]
     label = int(probabilities.argmax())
@@ -56,7 +56,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(encoded)))
             self.end_headers()
             self.wfile.write(encoded)
-        except (KeyError, ValueError, OSError, json.JSONDecodeError) as error:
+        except (KeyError, ValueError, OSError) as error:
             self.send_error(400, str(error))
 
     def log_message(self, format: str, *args: object) -> None:

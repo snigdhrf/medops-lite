@@ -70,19 +70,16 @@ def train(args: argparse.Namespace) -> dict[str, object]:
     }
     (output / "metrics.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 
-    try:
-        import mlflow
+    import mlflow
 
-        mlflow.set_tracking_uri(args.mlflow_uri)
-        with mlflow.start_run():
-            mlflow.log_params({key: metadata[key] for key in ("seed", "epochs", "batch_size", "learning_rate", "class_weights")})
-            mlflow.log_metrics({key: value for key, value in metrics.items() if isinstance(value, float)})
-            if best_val_metrics:
-                mlflow.log_metrics({f"val_{key}": value for key, value in best_val_metrics.items() if isinstance(value, float)})
-            mlflow.log_artifact(str(checkpoint))
-            mlflow.log_artifact(str(output / "metrics.json"))
-    except ImportError:
-        pass
+    mlflow.set_tracking_uri(args.mlflow_uri)
+    with mlflow.start_run():
+        mlflow.log_params({key: metadata[key] for key in ("seed", "epochs", "batch_size", "learning_rate", "class_weights")})
+        mlflow.log_metrics({key: value for key, value in metrics.items() if isinstance(value, float)})
+        if best_val_metrics:
+            mlflow.log_metrics({f"val_{key}": value for key, value in best_val_metrics.items() if isinstance(value, float)})
+        mlflow.log_artifact(str(checkpoint))
+        mlflow.log_artifact(str(output / "metrics.json"))
     return metadata
 
 

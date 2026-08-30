@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from PIL import Image
 
 from src.data import image_to_tensor
 from src.evaluate import evaluate
@@ -7,10 +8,11 @@ from src.model import PneumoniaCNN
 
 
 def test_preprocessing_is_deterministic_and_normalized():
-    image = np.arange(64, dtype=np.uint8).reshape(8, 8)
+    image = Image.fromarray(np.arange(64, dtype=np.uint8).reshape(8, 8))
     first = image_to_tensor(image)
     second = image_to_tensor(image)
     assert first.shape == (1, 28, 28)
+    assert first.dtype == torch.float32
     assert torch.equal(first, second)
     assert -1.0 <= float(first.min()) <= 1.0
 
