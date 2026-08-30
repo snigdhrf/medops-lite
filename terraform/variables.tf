@@ -8,20 +8,13 @@ variable "project_name" {
   default = "medops-lite"
 }
 
-variable "model_artifact_s3_uri" {
+variable "release_sha" {
   type        = string
   default     = ""
-  description = "s3:// URI for model.tar.gz. Leave empty to provision storage only."
-}
+  description = "Git SHA used for the ECR image tag and S3 model key. Leave empty to provision storage only."
 
-variable "image_tag" {
-  type        = string
-  default     = "latest"
-  description = "ECR image tag to deploy."
-}
-
-variable "deploy_endpoint" {
-  type        = bool
-  default     = false
-  description = "Create a SageMaker serverless endpoint after model_artifact_s3_uri is set."
+  validation {
+    condition     = var.release_sha == "" || can(regex("^[0-9a-f]{7,40}$", var.release_sha))
+    error_message = "release_sha must be a 7-to-40-character lowercase Git SHA."
+  }
 }

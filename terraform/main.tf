@@ -12,8 +12,6 @@ provider "aws" {
   region = var.aws_region
 }
 
-data "aws_caller_identity" "current" {}
-
 resource "aws_s3_bucket" "artifacts" {
   bucket_prefix = "${var.project_name}-"
   force_destroy = true
@@ -53,39 +51,81 @@ resource "aws_iam_role_policy" "sagemaker" {
   role = aws_iam_role.sagemaker.id
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["s3:GetObject", "s3:ListBucket"]
-      Resource = [aws_s3_bucket.artifacts.arn, "${aws_s3_bucket.artifacts.arn}/*"]
-    }]
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = [aws_s3_bucket.artifacts.arn]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:GetObject"]
+        Resource = ["${aws_s3_bucket.artifacts.arn}/*"]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:BatchGetImage",
+          "ecr:GetDownloadUrlForLayer",
+        ]
+        Resource = [aws_ecr_repository.inference.arn]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "cloudwatch:PutMetricData",
+          "ecr:GetAuthorizationToken",
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:DescribeLogStreams",
+          "logs:PutLogEvents",
+        ]
+        Resource = ["*"]
+      },
+    ]
   })
 }
 
 resource "aws_sagemaker_model" "inference" {
-  count              = var.deploy_endpoint && var.model_artifact_s3_uri != "" ? 1 : 0
-  name               = var.project_name
+  count              = var.release_sha == "" ? 0 : 1
   execution_role_arn = aws_iam_role.sagemaker.arn
+  # aws_sagemaker_model has no name_prefix argument. Omitting name gives each replacement a unique name.
   primary_container {
-    image          = "${aws_ecr_repository.inference.repository_url}:${var.image_tag}"
-    model_data_url = var.model_artifact_s3_uri
+    image          = "${aws_ecr_repository.inference.repository_url}:${var.release_sha}"
+    model_data_url = "s3://${aws_s3_bucket.artifacts.bucket}/models/${var.release_sha}/model.tar.gz"
     environment    = { MODEL_PATH = "/opt/ml/model/model.pt" }
+  }
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
 resource "aws_sagemaker_endpoint_configuration" "inference" {
-  count = var.deploy_endpoint && var.model_artifact_s3_uri != "" ? 1 : 0
-  name  = var.project_name
+  count       = var.release_sha == "" ? 0 : 1
+  name_prefix = "${var.project_name}-config-"
   production_variants {
-    variant_name           = "AllTraffic"
-    model_name             = aws_sagemaker_model.inference[0].name
-    initial_instance_count = 1
-    instance_type          = "ml.t2.medium"
-    initial_variant_weight = 1
+    variant_name = "AllTraffic"
+    model_name   = aws_sagemaker_model.inference[0].name
+    serverless_config {
+      max_concurrency   = 2
+      memory_size_in_mb = 2048
+    }
+  }
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
+resource "aws_cloudwatch_log_group" "sagemaker_endpoint" {
+  count             = var.release_sha == "" ? 0 : 1
+  name              = "/aws/sagemaker/Endpoints/${var.project_name}"
+  retention_in_days = 14
+}
+
 resource "aws_sagemaker_endpoint" "inference" {
-  count                = var.deploy_endpoint && var.model_artifact_s3_uri != "" ? 1 : 0
+  count                = var.release_sha == "" ? 0 : 1
   name                 = var.project_name
   endpoint_config_name = aws_sagemaker_endpoint_configuration.inference[0].name
+  depends_on           = [aws_cloudwatch_log_group.sagemaker_endpoint]
 }

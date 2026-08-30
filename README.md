@@ -4,7 +4,26 @@ MedOps Lite is a small MLOps learning project for the Materialise MLOps Engineer
 
 This is an educational project. The dataset and baseline model are not suitable for clinical decisions.
 
-![Architecture](architecture.svg)
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Local
+        DATA[PneumoniaMNIST] --> TRAIN[PyTorch training]
+        TRAIN --> MLFLOW[MLflow run]
+        TRAIN --> MODEL[model.pt]
+        API[Inference service] --> IMAGE[Docker image]
+    end
+
+    subgraph AWS["AWS, provisioned by Terraform"]
+        MODEL --> S3[S3 artifacts bucket]
+        IMAGE --> ECR[ECR repository]
+        S3 --> SM[SageMaker serverless endpoint]
+        ECR --> SM
+        IAM[IAM role] --> SM
+        SM --> CW[CloudWatch logs and metrics]
+    end
+```
 
 ## Exploratory data analysis
 
@@ -48,7 +67,7 @@ The image is also suitable as a starting point for a SageMaker custom inference 
 
 ## AWS path
 
-The Terraform configuration defaults to storage-only mode to avoid accidentally creating a billable endpoint.
+The Terraform configuration defaults to storage-only mode to avoid accidentally creating a billable endpoint. The optional deployment uses SageMaker Serverless Inference because this demo expects infrequent traffic. It scales to zero when idle, avoiding the cost of a continuously running instance. The first request after an idle period may be slower because the endpoint has to start.
 
 ```bash
 cd terraform
@@ -58,13 +77,15 @@ terraform apply
 terraform output
 ```
 
-Push the Docker image to the ECR URL from the outputs. Package the model as `model.tar.gz`, upload it to the artifacts bucket, then set `model_artifact_s3_uri` and `deploy_endpoint=true` in a local `.tfvars` file. Use a small CPU instance for the demo and destroy resources afterwards:
+Tag the Docker image with the current Git SHA and push it to the ECR URL from the outputs. Package the model as `model.tar.gz` and upload it to `models/<git-sha>/model.tar.gz` in the artifacts bucket. Set `release_sha` to that SHA in a local `.tfvars` file. Terraform uses it for both artifacts and creates a new SageMaker model and endpoint configuration before updating the endpoint. Leave `release_sha` empty to keep storage-only mode.
+
+The serverless endpoint uses 2 GB of memory and accepts up to two concurrent requests. Destroy the resources afterwards:
 
 ```bash
 terraform destroy
 ```
 
-The default Terraform role grants SageMaker read access to the artifacts bucket and uses server-side S3 encryption. Production would use tighter resource-level permissions, private networking, secret management, lifecycle policies, and an approved account structure.
+The Terraform role lets SageMaker read the model from S3, pull the inference image from ECR, and write logs and metrics to CloudWatch. Terraform retains endpoint logs for 14 days and removes the log group on destroy. The artifacts bucket uses server-side S3 encryption and versioning, but deployments use the Git SHA in the object key rather than relying on S3 versions. Production would use tighter resource-level permissions, private networking, secret management, lifecycle policies, and an approved account structure.
 
 ## Monitoring demo
 
