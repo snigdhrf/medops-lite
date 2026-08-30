@@ -77,7 +77,7 @@ terraform apply
 terraform output
 ```
 
-Tag the Docker image with the current Git SHA and push it to the ECR URL from the outputs. Package the model as `model.tar.gz` and upload it to `models/<git-sha>/model.tar.gz` in the artifacts bucket. Set `release_sha` to that SHA in a local `.tfvars` file. Terraform uses it for both artifacts and creates a new SageMaker model and endpoint configuration before updating the endpoint. Leave `release_sha` empty to keep storage-only mode.
+Tag the Docker image with an immutable version such as a Git SHA and push it to the ECR URL from the outputs. Package the model as `model.tar.gz` and upload it to a versioned key such as `models/<mlflow-run-id>/model.tar.gz` in the artifacts bucket. Set `image_tag` and `model_artifact_key` in a local `.tfvars` file. Terraform creates a new SageMaker model and endpoint configuration when either value changes, so the image and model can be released independently. Leave both empty to keep storage-only mode.
 
 The serverless endpoint uses 2 GB of memory and accepts up to two concurrent requests. Destroy the resources afterwards:
 

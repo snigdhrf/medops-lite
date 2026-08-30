@@ -8,13 +8,24 @@ variable "project_name" {
   default = "medops-lite"
 }
 
-variable "release_sha" {
+variable "image_tag" {
   type        = string
   default     = ""
-  description = "Git SHA used for the ECR image tag and S3 model key. Leave empty to provision storage only."
+  description = "Immutable ECR image tag, such as a Git SHA. Set with model_artifact_key to deploy."
 
   validation {
-    condition     = var.release_sha == "" || can(regex("^[0-9a-f]{7,40}$", var.release_sha))
-    error_message = "release_sha must be a 7-to-40-character lowercase Git SHA."
+    condition     = var.image_tag == "" || can(regex("^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$", var.image_tag))
+    error_message = "image_tag must be a valid ECR image tag."
+  }
+}
+
+variable "model_artifact_key" {
+  type        = string
+  default     = ""
+  description = "Immutable S3 key for model.tar.gz, such as models/<model-version>/model.tar.gz. Set with image_tag to deploy."
+
+  validation {
+    condition     = var.model_artifact_key == "" || can(regex("^models/[^/]+/model\\.tar\\.gz$", var.model_artifact_key))
+    error_message = "model_artifact_key must match models/<model-version>/model.tar.gz."
   }
 }

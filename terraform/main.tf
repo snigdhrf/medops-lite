@@ -12,6 +12,10 @@ provider "aws" {
   region = var.aws_region
 }
 
+locals {
+  deployment_requested = var.image_tag != "" || var.model_artifact_key != ""
+}
+
 resource "aws_s3_bucket" "artifacts" {
   bucket_prefix = "${var.project_name}-"
   force_destroy = true
@@ -88,21 +92,25 @@ resource "aws_iam_role_policy" "sagemaker" {
 }
 
 resource "aws_sagemaker_model" "inference" {
-  count              = var.release_sha == "" ? 0 : 1
+  count              = local.deployment_requested ? 1 : 0
   execution_role_arn = aws_iam_role.sagemaker.arn
   # aws_sagemaker_model has no name_prefix argument. Omitting name gives each replacement a unique name.
   primary_container {
-    image          = "${aws_ecr_repository.inference.repository_url}:${var.release_sha}"
-    model_data_url = "s3://${aws_s3_bucket.artifacts.bucket}/models/${var.release_sha}/model.tar.gz"
+    image          = "${aws_ecr_repository.inference.repository_url}:${var.image_tag}"
+    model_data_url = "s3://${aws_s3_bucket.artifacts.bucket}/${var.model_artifact_key}"
     environment    = { MODEL_PATH = "/opt/ml/model/model.pt" }
   }
   lifecycle {
     create_before_destroy = true
+    precondition {
+      condition     = var.image_tag != "" && var.model_artifact_key != ""
+      error_message = "image_tag and model_artifact_key must be set together."
+    }
   }
 }
 
 resource "aws_sagemaker_endpoint_configuration" "inference" {
-  count       = var.release_sha == "" ? 0 : 1
+  count       = local.deployment_requested ? 1 : 0
   name_prefix = "${var.project_name}-config-"
   production_variants {
     variant_name = "AllTraffic"
@@ -118,13 +126,13 @@ resource "aws_sagemaker_endpoint_configuration" "inference" {
 }
 
 resource "aws_cloudwatch_log_group" "sagemaker_endpoint" {
-  count             = var.release_sha == "" ? 0 : 1
+  count             = local.deployment_requested ? 1 : 0
   name              = "/aws/sagemaker/Endpoints/${var.project_name}"
   retention_in_days = 14
 }
 
 resource "aws_sagemaker_endpoint" "inference" {
-  count                = var.release_sha == "" ? 0 : 1
+  count                = local.deployment_requested ? 1 : 0
   name                 = var.project_name
   endpoint_config_name = aws_sagemaker_endpoint_configuration.inference[0].name
   depends_on           = [aws_cloudwatch_log_group.sagemaker_endpoint]
