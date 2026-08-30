@@ -43,9 +43,3 @@ class PreparedDataset(torch.utils.data.Dataset):
         if target not in (0, 1):
             raise ValueError(f"unexpected binary label: {target}")
         return image_to_tensor(image), torch.tensor(target, dtype=torch.long)
-
-
-def ensure_directory(path: str) -> Path:
-    directory = Path(path)
-    directory.mkdir(parents=True, exist_ok=True)
-    return directory

@@ -13,7 +13,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from .data import PreparedDataset, ensure_directory, load_dataset
+from .data import PreparedDataset, load_dataset
 from .evaluate import evaluate
 from .model import PneumoniaCNN
 
@@ -26,7 +26,8 @@ def seed_everything(seed: int) -> None:
 
 def train(args: argparse.Namespace) -> dict[str, object]:
     seed_everything(args.seed)
-    output = ensure_directory(args.output)
+    output = Path(args.output)
+    output.mkdir(parents=True, exist_ok=True)
     train_data = PreparedDataset(load_dataset("train", args.data_dir))
     val_data = PreparedDataset(load_dataset("val", args.data_dir))
     train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True)
