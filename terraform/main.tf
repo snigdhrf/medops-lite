@@ -12,6 +12,8 @@ provider "aws" {
   region = var.aws_region
 }
 
+data "aws_caller_identity" "current" {}
+
 resource "aws_s3_bucket" "artifacts" {
   bucket_prefix = "${var.project_name}-"
   force_destroy = true
@@ -77,8 +79,8 @@ resource "aws_sagemaker_endpoint_configuration" "inference" {
     variant_name           = "AllTraffic"
     model_name             = aws_sagemaker_model.inference[0].name
     initial_instance_count = 1
-    instance_type           = "ml.t2.medium"
-    initial_variant_weight  = 1
+    instance_type          = "ml.t2.medium"
+    initial_variant_weight = 1
   }
 }
 
