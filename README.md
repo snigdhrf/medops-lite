@@ -22,17 +22,23 @@ make test
 make train
 ```
 
-`uv sync` creates the project environment from `pyproject.toml` and the committed `uv.lock` file. Run commands with `uv run` or use the Makefile shortcuts. Training uses class-weighted loss and selects the best validation-F1 checkpoint.
+`uv sync` creates the project environment from `pyproject.toml` and the committed `uv.lock` file. Run training directly with `uv run medops-train`, or use `make train`. Set the epoch count with `uv run medops-train --epochs 10` or `EPOCHS=10 make train`. Training uses class-weighted loss and selects the best validation-F1 checkpoint.
 
 Training downloads PneumoniaMNIST into `data/` and writes `artifacts/model.pt` and `artifacts/metrics.json`. MLflow records local runs in `mlflow.db`.
 
 To run local HTTP inference after training:
 
 ```bash
-python -m src.predict --serve --model artifacts/model.pt
+uv run medops-predict --serve --model artifacts/model.pt
 ```
 
 The service exposes `GET /ping` and `POST /invocations`. The request body is JSON with an `image_base64` field.
+
+To predict a single image:
+
+```bash
+uv run medops-predict path/to/image.png --model artifacts/model.pt
+```
 
 ## Docker
 

@@ -9,10 +9,10 @@ test:
 	$(UV) run pytest -q
 
 train:
-	$(UV) run python -m src.train --epochs $${EPOCHS:-5}
+	$(UV) run medops-train --epochs $${EPOCHS:-5}
 
 predict:
-	$(UV) run python -m src.predict $${IMAGE} --model $${MODEL:-artifacts/model.pt}
+	$(UV) run medops-predict $${IMAGE} --model $${MODEL:-artifacts/model.pt}
 
 docker-build:
 	docker build -t medops-lite:local .

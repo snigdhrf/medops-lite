@@ -12,6 +12,17 @@ dependencies = [
     "torch>=2.2,<3",
 ]
 
+[project.scripts]
+medops-predict = "src.predict:main"
+medops-train = "src.train:main"
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["src"]
+
 [dependency-groups]
 dev = [
     "ipykernel>=6,<7",
