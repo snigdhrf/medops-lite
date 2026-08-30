@@ -13,7 +13,7 @@ provider "aws" {
 }
 
 locals {
-  deployment_requested = var.image_tag != "" || var.model_artifact_key != ""
+  deployment_requested = var.image_digest != "" || var.model_artifact_key != ""
 }
 
 resource "aws_s3_bucket" "artifacts" {
@@ -105,15 +105,15 @@ resource "aws_sagemaker_model" "inference" {
   execution_role_arn = aws_iam_role.sagemaker.arn
   # aws_sagemaker_model has no name_prefix argument. Omitting name gives each replacement a unique name.
   primary_container {
-    image          = "${aws_ecr_repository.inference.repository_url}:${var.image_tag}"
+    image          = "${aws_ecr_repository.inference.repository_url}@${var.image_digest}"
     model_data_url = "s3://${aws_s3_bucket.artifacts.bucket}/${var.model_artifact_key}"
     environment    = { MODEL_PATH = "/opt/ml/model/model.pt" }
   }
   lifecycle {
     create_before_destroy = true
     precondition {
-      condition     = var.image_tag != "" && var.model_artifact_key != ""
-      error_message = "image_tag and model_artifact_key must be set together."
+      condition     = var.image_digest != "" && var.model_artifact_key != ""
+      error_message = "image_digest and model_artifact_key must be set together."
     }
   }
 }

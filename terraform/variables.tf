@@ -8,24 +8,24 @@ variable "project_name" {
   default = "medops-lite"
 }
 
-variable "image_tag" {
+variable "image_digest" {
   type        = string
   default     = ""
-  description = "Immutable ECR image tag, such as a Git SHA. Set with model_artifact_key to deploy."
+  description = "Immutable ECR image digest. Set with model_artifact_key to deploy."
 
   validation {
-    condition     = var.image_tag == "" || can(regex("^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$", var.image_tag))
-    error_message = "image_tag must be a valid ECR image tag."
+    condition     = var.image_digest == "" || can(regex("^sha256:[0-9a-f]{64}$", var.image_digest))
+    error_message = "image_digest must match sha256:<64 lowercase hexadecimal characters>."
   }
 }
 
 variable "model_artifact_key" {
   type        = string
   default     = ""
-  description = "Immutable S3 key for model.tar.gz, such as models/<model-version>/model.tar.gz. Set with image_tag to deploy."
+  description = "Content-addressed S3 key for model.tar.gz. Set with image_digest to deploy."
 
   validation {
-    condition     = var.model_artifact_key == "" || can(regex("^models/[^/]+/model\\.tar\\.gz$", var.model_artifact_key))
-    error_message = "model_artifact_key must match models/<model-version>/model.tar.gz."
+    condition     = var.model_artifact_key == "" || can(regex("^models/[0-9a-f]{64}/model\\.tar\\.gz$", var.model_artifact_key))
+    error_message = "model_artifact_key must match models/<64-character-sha256>/model.tar.gz."
   }
 }
