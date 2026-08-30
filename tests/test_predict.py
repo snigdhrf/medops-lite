@@ -2,8 +2,8 @@ import socket
 import subprocess
 import sys
 import time
-from urllib.error import URLError
-from urllib.request import urlopen
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 import pytest
 import torch
@@ -33,10 +33,21 @@ def test_sagemaker_serve_command_starts_http_server(tmp_path):
             try:
                 with urlopen(f"http://127.0.0.1:{port}/ping", timeout=0.2) as response:
                     assert response.status == 200
-                    return
+                    break
             except URLError:
                 time.sleep(0.05)
-        pytest.fail("server did not become healthy within 5 seconds")
+        else:
+            pytest.fail("server did not become healthy within 5 seconds")
+
+        for payload in (b"null", b"[1, 2]", b'{"image_base64": 123}'):
+            request = Request(
+                f"http://127.0.0.1:{port}/invocations",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+            )
+            with pytest.raises(HTTPError) as error:
+                urlopen(request, timeout=1)
+            assert error.value.code == 400
     finally:
         process.terminate()
         try:

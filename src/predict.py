@@ -56,7 +56,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(encoded)))
             self.end_headers()
             self.wfile.write(encoded)
-        except (KeyError, ValueError, OSError) as error:
+        except (KeyError, TypeError, ValueError, OSError) as error:
             self.send_error(400, str(error))
 
 def main() -> None:
