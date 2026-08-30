@@ -1,0 +1,23 @@
+[project]
+name = "medops-lite"
+version = "0.1.0"
+description = "A small MLOps learning project for medical-imaging inference"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "medmnist>=3.0,<4",
+    "mlflow>=2.12,<4",
+    "numpy>=1.26,<3",
+    "pillow>=10,<12",
+    "torch>=2.2,<3",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6,<7",
+    "matplotlib>=3.8,<4",
+    "pytest>=8,<9",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

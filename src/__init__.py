@@ -1,0 +1,1 @@
+"""MedOps Lite application package."""

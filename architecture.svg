@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320">
+  <style>text{font-family:Arial,sans-serif;fill:#172033}.box{fill:#e8f0ff;stroke:#356ae6;stroke-width:2}.arrow{stroke:#356ae6;stroke-width:3;marker-end:url(#m)}</style>
+  <defs><marker id="m" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#356ae6"/></marker></defs>
+  <text x="600" y="35" text-anchor="middle" font-size="24" font-weight="bold">MedOps Lite architecture</text>
+  <g font-size="16" text-anchor="middle">
+    <rect class="box" x="25" y="110" width="150" height="80" rx="10"/><text x="100" y="145">PneumoniaMNIST</text><text x="100" y="168">dataset</text>
+    <rect class="box" x="220" y="110" width="150" height="80" rx="10"/><text x="295" y="145">Training</text><text x="295" y="168">+ MLflow</text>
+    <rect class="box" x="415" y="110" width="150" height="80" rx="10"/><text x="490" y="145">Docker</text><text x="490" y="168">image</text>
+    <rect class="box" x="610" y="110" width="150" height="80" rx="10"/><text x="685" y="145">ECR + S3</text><text x="685" y="168">artifacts</text>
+    <rect class="box" x="805" y="110" width="150" height="80" rx="10"/><text x="880" y="145">SageMaker</text><text x="880" y="168">inference</text>
+    <rect class="box" x="1000" y="110" width="150" height="80" rx="10"/><text x="1075" y="145">CloudWatch</text><text x="1075" y="168">logs/metrics</text>
+  </g>
+  <g class="arrow"><line x1="175" y1="150" x2="220" y2="150"/><line x1="370" y1="150" x2="415" y2="150"/><line x1="565" y1="150" x2="610" y2="150"/><line x1="760" y1="150" x2="805" y2="150"/><line x1="955" y1="150" x2="1000" y2="150"/></g>
+  <text x="600" y="260" text-anchor="middle" font-size="16">Terraform provisions AWS storage, ECR, IAM, and the optional SageMaker endpoint</text>
+</svg>
