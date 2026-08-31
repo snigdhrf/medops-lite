@@ -31,7 +31,7 @@ def train(args: argparse.Namespace) -> dict[str, object]:
 
     model = PneumoniaCNN()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
-    labels = torch.tensor([label.item() for _, label in train_data])
+    labels = torch.from_numpy(train_data.labels.flatten())
     class_counts = torch.bincount(labels, minlength=2).float()
     class_weights = class_counts.sum() / (2 * class_counts.clamp_min(1))
     loss_fn = nn.CrossEntropyLoss(weight=class_weights)

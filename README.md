@@ -4,11 +4,26 @@ MedOps Lite is a small MLOps learning project for the Materialise MLOps Engineer
 
 This is an educational project. The dataset and baseline model are not suitable for clinical decisions.
 
-![Architecture](architecture.svg)
+## Architecture
 
-## Why this resembles the role
+```mermaid
+flowchart LR
+    subgraph Local
+        DATA[PneumoniaMNIST] --> TRAIN[PyTorch training]
+        TRAIN --> MLFLOW[MLflow run]
+        TRAIN --> MODEL[model.pt]
+        API[Inference service] --> IMAGE[Docker image]
+    end
 
-The engineering problem is the same one described in the role: move a research-style ML workflow into a repeatable system with versioned artifacts, automated checks, deployment, and monitoring. The model is deliberately basic so the infrastructure remains visible.
+    subgraph AWS["AWS, provisioned by Terraform"]
+        MODEL --> S3[S3 artifacts bucket]
+        IMAGE --> ECR[ECR repository]
+        S3 --> SM[SageMaker serverless endpoint]
+        ECR --> SM
+        IAM[IAM role] --> SM
+        SM --> CW[CloudWatch logs and metrics]
+    end
+```
 
 ## Exploratory data analysis
 
@@ -48,27 +63,24 @@ docker run --rm -p 8080:8080 -v "$PWD/artifacts:/opt/ml/model" \
   medops-lite:local --serve --model /opt/ml/model/model.pt
 ```
 
-The image is also suitable as a starting point for a SageMaker custom inference container. A production image would need a fuller request contract, authentication, structured logging, and a controlled model-loading path.
+The image implements SageMaker's `/ping` and `/invocations` container contract. A production image would also need request-size limits, stricter input validation, structured logging, and a production HTTP server. SageMaker endpoint access is authenticated through AWS IAM rather than inside the container.
 
 ## AWS path
 
-The Terraform configuration defaults to storage-only mode to avoid accidentally creating a billable endpoint.
+Terraform creates an S3 artifact bucket, an ECR image repository, and a SageMaker execution role. It leaves the endpoint disabled until both `image_digest` and `model_artifact_key` are set.
+
+The endpoint uses SageMaker Serverless Inference because this demo expects little traffic. It scales to zero when idle, trading lower compute cost for slower cold starts. S3, ECR, and CloudWatch may still incur small charges.
+
+Deployments pin the container by ECR digest and store each model archive under its content hash. Changing either value creates a new SageMaker model and endpoint configuration before updating the stable endpoint. See [terraform/.example.tfvars](terraform/.example.tfvars) for the required inputs.
 
 ```bash
-cd terraform
-terraform init
-terraform plan
-terraform apply
-terraform output
+terraform -chdir=terraform init
+terraform -chdir=terraform apply
 ```
 
-Push the Docker image to the ECR URL from the outputs. Package the model as `model.tar.gz`, upload it to the artifacts bucket, then set `model_artifact_s3_uri` and `deploy_endpoint=true` in a local `.tfvars` file. Use a small CPU instance for the demo and destroy resources afterwards:
+This first apply creates storage and ECR without an endpoint. After publishing the image and model, put their identifiers in `terraform/release.tfvars` using the example file as a template. Run `terraform -chdir=terraform apply -var-file=release.tfvars` to deploy the endpoint.
 
-```bash
-terraform destroy
-```
-
-The default Terraform role grants SageMaker read access to the artifacts bucket and uses server-side S3 encryption. Production would use tighter resource-level permissions, private networking, secret management, lifecycle policies, and an approved account structure.
+The role lets SageMaker read the model, pull the image, and write CloudWatch logs and metrics. The bucket blocks public access and uses encryption and versioning.
 
 ## Monitoring demo
 

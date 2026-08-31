@@ -56,7 +56,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(encoded)))
             self.end_headers()
             self.wfile.write(encoded)
-        except (KeyError, ValueError, OSError) as error:
+        except (KeyError, TypeError, ValueError, OSError) as error:
             self.send_error(400, str(error))
 
 def main() -> None:
@@ -66,7 +66,7 @@ def main() -> None:
     parser.add_argument("--serve", action="store_true")
     parser.add_argument("--port", type=int, default=8080)
     args = parser.parse_args()
-    if args.serve:
+    if args.serve or args.image == "serve":
         Handler.model = load_model(args.model)
         HTTPServer(("0.0.0.0", args.port), Handler).serve_forever()
     elif args.image:
